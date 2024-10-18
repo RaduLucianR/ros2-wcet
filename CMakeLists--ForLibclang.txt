@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.13)
+project(wcet CXX)
+
+# Set C++ standard and compiler flags
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+
+# Specify paths for Clang
+set(CLANG_INCLUDE_DIR /usr/lib/llvm-18/include)
+set(CLANG_LIB_DIR /usr/lib/llvm-18/lib)
+set(CLANG_LIB clang)  # or libclang.so, depending on your setup
+
+# Add the Clang include directory
+include_directories(${CLANG_INCLUDE_DIR})
+
+# Find the Clang library
+find_library(CLANG_LIBRARIES NAMES ${CLANG_LIB} PATHS ${CLANG_LIB_DIR})
+
+# Check if the library was found
+if(NOT CLANG_LIBRARIES)
+    message(FATAL_ERROR "Could not find the Clang library")
+endif()
+
+# Set the source files
+set(SOURCES src/libclang_ast_walker.cpp)
+
+# Add the executable target
+add_executable(ast-walker ${SOURCES})
+
+# Link against the Clang library
+target_link_libraries(ast-walker PRIVATE ${CLANG_LIBRARIES})

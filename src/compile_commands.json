@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/radu/ros2-wcet/build",
+  "command": "/usr/bin/c++ -DCLANG_TOOLING_BUILD -I/usr/lib/llvm-18/include -std=gnu++17 -o CMakeFiles/my_clang_tool.dir/src/lib_tooling_example.cpp.o -c /home/radu/ros2-wcet/src/lib_tooling_example.cpp",
+  "file": "/home/radu/ros2-wcet/src/lib_tooling_example.cpp",
+  "output": "CMakeFiles/my_clang_tool.dir/src/lib_tooling_example.cpp.o"
+},
+{
+  "directory": "/home/radu/ros2-wcet/build",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include  -o CMakeFiles/test.dir/src/test.cpp.o -c /home/radu/ros2-wcet/src/test.cpp",
+  "file": "/home/radu/ros2-wcet/src/test.cpp",
+  "output": "CMakeFiles/test.dir/src/test.cpp.o"
+}
+]
