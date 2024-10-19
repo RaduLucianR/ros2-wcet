@@ -9,6 +9,9 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "clang/AST/Decl.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
 
 #include <iostream>
 
@@ -17,57 +20,46 @@ using namespace clang;
 using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
+using namespace clang::ast_matchers;
 
-Rewriter rewriter;
 int numFunctions = 0;
+int numVar = 0;
+int numClass = 0;
+int numConstr = 0;
 static cl::OptionCategory MyToolCategory("my-tool options");
 
-class ExampleVisitor : public RecursiveASTVisitor<ExampleVisitor> {
-private:
-    ASTContext *astContext; // used for getting additional AST info
 
+class ExampleClassMatcher : public MatchFinder::MatchCallback {
 public:
-    explicit ExampleVisitor(CompilerInstance *CI) 
-      : astContext(&(CI->getASTContext())) // initialize private members
-    {
-        rewriter.setSourceMgr(astContext->getSourceManager(), astContext->getLangOpts());
-    }
+    virtual void run(const MatchFinder::MatchResult &Result) {
+        if (const CXXRecordDecl *classDecl = Result.Nodes.getNodeAs<CXXRecordDecl>("derivedClass")) {
+            std::cout << "Class: " << classDecl->getNameAsString() << std::endl;
 
-    virtual bool VisitFunctionDecl(FunctionDecl *func) {
-        numFunctions++;
-        string funcName = func->getNameInfo().getName().getAsString();
-        return true;
+            // Iterate over the declarations in the class
+            for (const auto *decl : classDecl->decls()) {
+                // Check if the declaration is a member function
+                if (const auto *methodDecl = llvm::dyn_cast<CXXMethodDecl>(decl)) {
+                    if (
+                        methodDecl->getAccess() == AS_public &&                // Check if member function is public
+                        !llvm::isa<CXXConstructorDecl>(methodDecl) &&          // Check if member function is NOT constructor
+                        !llvm::isa<CXXDestructorDecl>(methodDecl) &&           // Check if member function is NOT destructor
+                        methodDecl->getNameAsString().rfind("operator", 0) > 0 // Check if member function is NOT operator
+                    ) {       
+                        std::cout << "  Public Member Function: " << methodDecl->getNameAsString() << endl;
+
+                        for (const auto *param : methodDecl->parameters()) {
+                            std::cout << "    " << param->getType().getAsString() << " "; // Get argument type
+
+                            if (!param->getNameAsString().empty()) {
+                                std::cout << param->getNameAsString() << endl; // Get argument name
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 };
-
-
-
-class ExampleASTConsumer : public ASTConsumer {
-private:
-    ExampleVisitor *visitor; // doesn't have to be private
-
-public:
-    // override the constructor in order to pass CI
-    explicit ExampleASTConsumer(CompilerInstance *CI)
-        : visitor(new ExampleVisitor(CI)) // initialize the visitor
-    { }
-
-    // override this to call our ExampleVisitor on the entire source file
-    virtual void HandleTranslationUnit(ASTContext &Context) {
-        /* we can use ASTContext to get the TranslationUnitDecl, which is
-             a single Decl that collectively represents the entire source file */
-        visitor->TraverseDecl(Context.getTranslationUnitDecl());
-    }
-};
-
-
-class ExampleFrontendAction : public ASTFrontendAction {
-public:
-    std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, StringRef file) {
-        return std::make_unique<ExampleASTConsumer>(&CI); // pass CI pointer to ASTConsumer
-    }
-};
-
 
 int main(int argc, const char **argv) {
     // parse the command-line args passed to your code
@@ -76,12 +68,20 @@ int main(int argc, const char **argv) {
         llvm::errs() << ExpectedParser.takeError();
         return 1;
     }
-    CommonOptionsParser& op = ExpectedParser.get();      
-    // create a new Clang Tool instance (a LibTooling environment)
 
+    CommonOptionsParser& op = ExpectedParser.get();      
     ClangTool Tool(op.getCompilations(), op.getSourcePathList());
 
-    int result = Tool.run(newFrontendActionFactory<ExampleFrontendAction>().get());
+    // Match all classes that...
+    DeclarationMatcher classMatcher = cxxRecordDecl(
+        isDerivedFrom("rclcpp::Node"), // ...extend the "Super" class
+        isExpansionInMainFile() // ...are in the given file
+    ).bind("derivedClass");
 
-    errs() << "\nFound " << numFunctions << " functions.\n\n";
+    ExampleClassMatcher classMatcherCallback;
+    MatchFinder Finder;
+
+    Finder.addMatcher(classMatcher, &classMatcherCallback);
+
+    return Tool.run(newFrontendActionFactory(&Finder).get());
 }
