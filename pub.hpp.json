@@ -1,0 +1,12 @@
+[
+    {
+        "callbacks": [
+            {
+                "name": "timer_callback",
+                "param_count": 0,
+                "parameters": []
+            }
+        ],
+        "name": "MinimalPublisher"
+    }
+]

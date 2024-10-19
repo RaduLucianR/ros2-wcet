@@ -93,14 +93,14 @@ public:
 
             // Write to file
             std::string jsonFile = fileName + ".json";
-            ofstream Json(jsonFile);
+            ofstream Json(jsonFile); //TODO: close file!!!
             Json << jsonArray.dump(4);
         }
     }
 };
 
 int main(int argc, const char **argv) {
-    // parse the command-line args passed to your code
+    // * TODO: Add option for destination directory of JSONs 
     auto CliParser = CommonOptionsParser::create(argc, argv, ROSParser);
 
     if (!CliParser) {

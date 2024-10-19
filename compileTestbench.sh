@@ -1,0 +1,36 @@
+#!/bin/bash
+g++ -std=c++20 -o testbench testbenchTest.cpp /home/radu/thesis-ws/build/pub/CMakeFiles/talker.dir/src/pub.cpp.o \
+    -I/opt/ros/jazzy/include/rclcpp \
+    -I/opt/ros/jazzy/include/std_msgs \
+    -I/opt/ros/jazzy/include/builtin_interfaces \
+    -I/opt/ros/jazzy/include/rosidl_runtime_c \
+    -I/opt/ros/jazzy/include/rcutils \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_interface \
+    -I/opt/ros/jazzy/include/fastcdr \
+    -I/opt/ros/jazzy/include/rosidl_runtime_cpp \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_fastrtps_cpp \
+    -I/opt/ros/jazzy/include/rmw \
+    -I/opt/ros/jazzy/include/rosidl_dynamic_typesupport \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_fastrtps_c \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_introspection_c \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_introspection_cpp \
+    -I/opt/ros/jazzy/include/libstatistics_collector \
+    -I/opt/ros/jazzy/include/rcl \
+    -I/opt/ros/jazzy/include/rcl_interfaces \
+    -I/opt/ros/jazzy/include/service_msgs \
+    -I/opt/ros/jazzy/include/rcl_logging_interface \
+    -I/opt/ros/jazzy/include/rcl_yaml_param_parser \
+    -I/opt/ros/jazzy/include/type_description_interfaces \
+    -I/opt/ros/jazzy/include/rcpputils \
+    -I/opt/ros/jazzy/include/statistics_msgs \
+    -I/opt/ros/jazzy/include/rosgraph_msgs \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_cpp \
+    -I/opt/ros/jazzy/include/rosidl_typesupport_c \
+    -I/opt/ros/jazzy/include/tracetools \
+    -I/home/radu/thesis-ws/src/pub/include \
+    -I/home/radu/ros2-wcet/include \
+    -L/opt/ros/jazzy/lib -l rclcpp -l rcl \
+    -l std_msgs__rosidl_typesupport_cpp \
+    -l std_msgs__rosidl_typesupport_fastrtps_cpp \
+    -l std_msgs__rosidl_typesupport_introspection_cpp
+

@@ -15,18 +15,24 @@ find_package(nlohmann_json REQUIRED)
 
 # Include directories
 include_directories(${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
+include_directories(include)
 
 # Add executable target
 add_executable(rosParser src/ros_parser.cpp)
-
-# Link against LLVM and Clang libraries
-target_link_libraries(rosParser
+target_link_libraries(rosParser # Link against LLVM and Clang libraries
     ${LLVM_LIBRARIES}
     ${CLANG_LIBRARIES}
     clangTooling
     clangBasic
     clangAST
     clangSupport
+    nlohmann_json::nlohmann_json
+)
+
+# add_executable(testbench src/testbench.cpp)
+
+add_executable(generator src/generator.cpp)
+target_link_libraries(generator
     nlohmann_json::nlohmann_json
 )
 
