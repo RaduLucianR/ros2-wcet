@@ -1,15 +1,8 @@
 #include "clang/Driver/Options.h"
 #include "clang/AST/AST.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Frontend/ASTConsumers.h"
 #include "clang/Frontend/FrontendActions.h"
-#include "clang/Frontend/CompilerInstance.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
-#include "clang/Rewrite/Core/Rewriter.h"
-#include "clang/AST/Decl.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 
@@ -26,10 +19,10 @@ int numFunctions = 0;
 int numVar = 0;
 int numClass = 0;
 int numConstr = 0;
-static cl::OptionCategory MyToolCategory("my-tool options");
+static cl::OptionCategory ROSParser("my-tool options");
 
 
-class ExampleClassMatcher : public MatchFinder::MatchCallback {
+class NodeClassMatcher : public MatchFinder::MatchCallback {
 public:
     virtual void run(const MatchFinder::MatchResult &Result) {
         if (const CXXRecordDecl *classDecl = Result.Nodes.getNodeAs<CXXRecordDecl>("derivedClass")) {
@@ -63,25 +56,25 @@ public:
 
 int main(int argc, const char **argv) {
     // parse the command-line args passed to your code
-    auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
-    if (!ExpectedParser) {
-        llvm::errs() << ExpectedParser.takeError();
+    auto CliParser = CommonOptionsParser::create(argc, argv, ROSParser);
+    if (!CliParser) {
+        llvm::errs() << CliParser.takeError();
         return 1;
     }
 
-    CommonOptionsParser& op = ExpectedParser.get();      
+    CommonOptionsParser& op = CliParser.get();      
     ClangTool Tool(op.getCompilations(), op.getSourcePathList());
 
     // Match all classes that...
     DeclarationMatcher classMatcher = cxxRecordDecl(
         isDerivedFrom("rclcpp::Node"), // ...extend the "Super" class
-        isExpansionInMainFile() // ...are in the given file
+        isExpansionInMainFile()        // ...are in the given file
     ).bind("derivedClass");
 
-    ExampleClassMatcher classMatcherCallback;
+    NodeClassMatcher nodeClassMatcher;
     MatchFinder Finder;
 
-    Finder.addMatcher(classMatcher, &classMatcherCallback);
+    Finder.addMatcher(classMatcher, &nodeClassMatcher);
 
     return Tool.run(newFrontendActionFactory(&Finder).get());
 }
