@@ -4,13 +4,8 @@ set(CMAKE_PREFIX_PATH "/home/linuxbrew/.linuxbrew/opt/nlohmann-json/share/cmake/
 
 project(MyClangTool)
 
-# Find LLVM package
 find_package(LLVM REQUIRED CONFIG)
-
-# Find Clang package
 find_package(Clang REQUIRED CONFIG)
-
-
 find_package(nlohmann_json REQUIRED)
 
 # Include directories
@@ -35,6 +30,8 @@ add_executable(generator src/generator.cpp)
 target_link_libraries(generator
     nlohmann_json::nlohmann_json
 )
+
+add_executable(intro src/introspect.cpp)
 
 
 # Specify C++ standard

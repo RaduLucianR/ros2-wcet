@@ -1,7 +1,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-int main()
+int main(int argc, char* argv[])
 {
     std::ifstream JsonFile("pub.hpp.json");
     nlohmann::json Nodes;
