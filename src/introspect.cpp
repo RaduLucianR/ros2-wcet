@@ -20,6 +20,7 @@ int main(int argc, char* argv[])
     std::string nodeInfoFile = "nodeInfoTmp.txt";
     std::string nodeListCmd = "ros2 node list";
     std::string nodeInfoCmd = "ros2 node info";
+    std::string nodePubCmd = "ros2 topic pub -r 10 -t 10";
     std::string jsonFile = "nodes.json";
     std::fstream fileStream;    // Fstream to open temporary files
     std::string line = "";      // String to temporary store a line from a file
@@ -93,6 +94,16 @@ int main(int argc, char* argv[])
 
         subscribers[node] = nodeSub;
         publishers[node] = nodePub;
+    }
+
+    // Publish 10000 messages
+    for (std::string node: nodes) {
+        for (std::pair sub : subscribers[node]) {
+            std::string topic = sub.first;
+            std::string msg_type = sub.second;
+            command = nodePubCmd + " " + topic + " " + msg_type;
+            system(command.c_str());
+        }
     }
 
     // Convert map to json
