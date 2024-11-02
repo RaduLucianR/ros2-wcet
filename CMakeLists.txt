@@ -33,6 +33,8 @@ target_link_libraries(generator
 
 add_executable(intro src/introspect.cpp)
 
+add_executable(wcet src/wcet.cpp)
+
 
 # Specify C++ standard
 set_target_properties(rosParser PROPERTIES

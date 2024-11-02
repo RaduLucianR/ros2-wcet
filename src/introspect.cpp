@@ -96,13 +96,17 @@ int main(int argc, char* argv[])
         publishers[node] = nodePub;
     }
 
+    // TODO: place this in another file
     // Publish 10000 messages
     for (std::string node: nodes) {
         for (std::pair sub : subscribers[node]) {
             std::string topic = sub.first;
             std::string msg_type = sub.second;
             command = nodePubCmd + " " + topic + " " + msg_type;
-            system(command.c_str());
+
+            if (! (topic == "/parameter_events")) { // Filter out default subscription
+                system(command.c_str());
+            }
         }
     }
 
