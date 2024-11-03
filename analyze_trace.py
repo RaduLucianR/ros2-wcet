@@ -14,13 +14,14 @@ import numpy as np
 import pandas as pd
 import argparse
 import os
-
+import json
 
 from tracetools_analysis.loading import load_file
 from tracetools_analysis.processor.ros2 import Ros2Handler
 from tracetools_analysis.utils.ros2 import Ros2DataModelUtil
 
 def main(trace_session, toplevel_trace_dir = "~/.ros/tracing"):
+    moet = dict()
     path = os.path.join(toplevel_trace_dir, trace_session, "ust")
     events = load_file(path)
     handler = Ros2Handler.process(events)
@@ -42,6 +43,11 @@ def main(trace_session, toplevel_trace_dir = "~/.ros/tracing"):
         duration_sec = duration_df['duration'] * 1000 / np.timedelta64(1, 's')
 
         print(symbol, "has MOET: ", duration_sec.max(), "ms")
+        moet[symbol] = duration_sec.max()
+
+    output_path = os.path.expanduser("~/.ros2wcet/moet.json")
+    with open(output_path, "w") as outfile: 
+        json.dump(moet, outfile)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

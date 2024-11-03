@@ -35,6 +35,8 @@ add_executable(intro src/introspect.cpp)
 
 add_executable(wcet src/wcet.cpp)
 
+add_executable(stress src/stress.cpp)
+
 
 # Specify C++ standard
 set_target_properties(rosParser PROPERTIES

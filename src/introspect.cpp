@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     std::string nodeInfoFile = "nodeInfoTmp.txt";
     std::string nodeListCmd = "ros2 node list";
     std::string nodeInfoCmd = "ros2 node info";
-    std::string nodePubCmd = "ros2 topic pub -r 10 -t 10";
+    std::string nodePubCmd = "ros2 topic pub -r 100 -t 10000";
     std::string jsonFile = "nodes.json";
     std::fstream fileStream;    // Fstream to open temporary files
     std::string line = "";      // String to temporary store a line from a file
