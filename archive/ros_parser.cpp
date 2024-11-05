@@ -6,6 +6,8 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Rewrite/Core/Rewriter.h"
+#include "clang/Lex/Lexer.h"
 
 #include <iostream>
 #include <fstream>
@@ -99,6 +101,73 @@ public:
     }
 };
 
+class TimerDefMatcher : public MatchFinder::MatchCallback {
+public:
+    TimerDefMatcher(Rewriter &Rewrite) : Rewrite(Rewrite), Initialized(false) {
+
+    }
+
+    void run(const MatchFinder::MatchResult &Result) override {
+        if (!Initialized) {
+            // Initialize the Rewriter with SourceManager and LangOpts from MatchResult
+            Rewrite.setSourceMgr(Result.Context->getSourceManager(), Result.Context->getLangOpts());
+            Initialized = true;
+        }
+
+        const CXXMemberCallExpr *callExpr = Result.Nodes.getNodeAs<CXXMemberCallExpr>("createWallTimerCall");
+        if (!callExpr) return;
+
+        auto &SourceMgr = Rewrite.getSourceMgr();
+        const Expr *arg1 = callExpr->getArg(0);
+        const Expr *arg2 = callExpr->getArg(1);
+
+        // Get the source code text for arg1 and arg2
+        std::string arg1Text = Lexer::getSourceText(
+            CharSourceRange::getTokenRange(arg1->getSourceRange()),
+            SourceMgr, Result.Context->getLangOpts()
+        ).str();
+        std::string arg2Text = Lexer::getSourceText(
+            CharSourceRange::getTokenRange(arg2->getSourceRange()),
+            SourceMgr, Result.Context->getLangOpts()
+        ).str();
+
+        // Define the new argument string using arg1 and arg2 text
+        std::string newArgs = arg1Text + ", " + arg2Text + ", nullptr, false";
+        std::cout << newArgs << std::endl;
+
+        // Replace the entire argument list
+        CharSourceRange argRange = CharSourceRange::getTokenRange(
+            callExpr->getArg(0)->getBeginLoc(),
+            callExpr->getEndLoc().getLocWithOffset(-1) // !! WARNING !! This includes the closing parenthesis of the function call.
+        );
+
+        Rewrite.ReplaceText(argRange, newArgs);
+
+        // ############# Write to file ################## 
+        auto MainFileID = SourceMgr.getMainFileID();
+        SourceLocation StartLoc = SourceMgr.getLocForStartOfFile(MainFileID);
+        
+        // Get the filename from the SourceLocation
+        llvm::StringRef Filename = SourceMgr.getFilename(StartLoc);
+
+        // Create an output file stream
+        std::error_code EC;
+        llvm::raw_fd_ostream out(Filename.str(), EC, llvm::sys::fs::FA_Write);
+        
+        if (EC) {
+            llvm::errs() << "Could not open file for writing: " << EC.message() << "\n";
+            return;
+        }
+
+        // Write the modified content back to the file
+        Rewrite.getEditBuffer(MainFileID).write(out);
+        out.close();
+    }
+private:
+    Rewriter &Rewrite;
+    bool Initialized;
+};
+
 int main(int argc, const char **argv) {
     // * TODO: Add option for destination directory of JSONs 
     auto CliParser = CommonOptionsParser::create(argc, argv, ROSParser);
@@ -117,10 +186,17 @@ int main(int argc, const char **argv) {
         isExpansionInMainFile()        // ...are in the given file
     ).bind("derivedClass");
 
+    StatementMatcher timerMatcher = cxxMemberCallExpr(
+        callee(cxxMethodDecl(hasName("create_wall_timer"))) // Match calls to create_wall_timer
+    ).bind("createWallTimerCall");
+
+    Rewriter Rewrite;
     NodeClassMatcher nodeClassMatcher;
+    TimerDefMatcher timerDefMatcher(Rewrite);
     MatchFinder Finder;
 
     Finder.addMatcher(classMatcher, &nodeClassMatcher);
+    Finder.addMatcher(timerMatcher, &timerDefMatcher);
 
     return Tool.run(newFrontendActionFactory(&Finder).get());
 }
