@@ -8,14 +8,27 @@ from stress import Stress
 from introspection import introspect
 from trigger_callbacks import trigger_subscriptions
 from analyze_trace import compute_moet_from_trace
+from ros_parsers_bindings import *    
 
-def main(session_name: str, 
-         ros_pkg: str, launch_file: str, 
+def measure_callbacks_moet(
+         session_name: str, 
+         ros_pkg: str, 
+         launch_file: str, 
          publish_frequency: int, 
-         nrof_messages: int
+         nrof_messages: int,
+         intrusive: bool,
+         callback_type: str
     ):
-
+    session_name = f"{session_name}_{callback_type}"
     stress = Stress()
+    
+    if intrusive == True:
+        if callback_type == "subscription":
+                apply_function_to_files_in_package(get_package_path(ros_pkg), disable_timers)
+        elif callback_type == "timer":
+                apply_function_to_files_in_package(get_package_path(ros_pkg), set_fast_periods)
+
+        recompile_ros_ws(get_workspace_path(ros_pkg))
 
     # Start tracing
     os.system(f"ros2 trace start {session_name}")
@@ -27,12 +40,19 @@ def main(session_name: str,
     ros_system = subprocess.Popen(['ros2', 'launch', ros_pkg, launch_file], start_new_session=True)
     time.sleep(5) # Wait for the system to be operational
 
-    # Get the ROS system structure
-    introspect()
-
     # Trigger the subscription callbacks
-    trigger_subscriptions(publish_frequency, nrof_messages)
-    time.sleep(1)
+    if callback_type == "subscription":
+        introspect() # Introspection finds the topics that the trigger needs to publish to
+        trigger_subscriptions(publish_frequency, nrof_messages)
+        time.sleep(1)
+    elif callback_type == "timer":
+        # For timers there's no need for introspection since their callbacks are triggered
+        # automatically by ROS. The tracing then finds the callbacks for us
+        time.sleep(10)  # Since we set the timers to publish every 1ms
+                        # then 10s should be enough to capture 10k samples
+                        # but this doesn't take the scheduling interference
+                        # so it might be that we have fewer than 10k samples.
+                        # For now it should be ok.
 
     # Stop and save collected traces
     os.system(f"ros2 trace stop {session_name}")
@@ -43,6 +63,20 @@ def main(session_name: str,
 
     # Compute the Maximum Observed Execution Times (MOET)
     compute_moet_from_trace(session_name)
+
+def main(session_name: str, 
+         ros_pkg: str, 
+         launch_file: str, 
+         publish_frequency: int, 
+         nrof_messages: int,
+         intrusive: bool
+        ):
+    measure_callbacks_moet(session_name, ros_pkg, launch_file, 
+                           publish_frequency, nrof_messages, intrusive,
+                           "subscription")
+    measure_callbacks_moet(session_name, ros_pkg, launch_file, 
+                           publish_frequency, nrof_messages, intrusive,
+                           "timer")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -77,11 +111,24 @@ if __name__ == "__main__":
                         default = 10_000,
                         type = int
                         )
+    parser.add_argument("-i", "--intrusive",
+                        help = "The tool modifies the C++ source code of the timers to disable \
+                                them or modify their period. This is done in order to prevent them \
+                                from triggering subscription callbacks, so the tool can do that on \
+                                its own, thus stressing the subscription callbacks independently of timers. \
+                                Moreover, the timers' periods are modified to 1ms so we can record many  \
+                                timers triggers faster, instead of waiting for each of their respective period. \
+                                If you don't want to have intrusion then disable this, however the tool \
+                                reverts the changes.",
+                        default = True,
+                        type = bool
+                        )
     args = parser.parse_args()
 
     main(args.session_name, 
          args.ros_pkg, 
          args.launch_file, 
          args.publish_frequency, 
-         args.nrof_messages
+         args.nrof_messages,
+         args.intrusive
         )

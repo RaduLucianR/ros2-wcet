@@ -48,11 +48,11 @@ public:
 
         std::string new_timer_period = "std::chrono::milliseconds(1)";
         std::string newArgs = new_timer_period + ", " + callback;
-        std::cout << newArgs << std::endl;
+        clang::SourceLocation callStartLocation = callExpr->getArg(0)->getBeginLoc();
 
         // Replace the entire argument list
         CharSourceRange argRange = CharSourceRange::getTokenRange(
-            callExpr->getArg(0)->getBeginLoc(),
+            callStartLocation,
             callExpr->getEndLoc().getLocWithOffset(-1)
         );
 
@@ -77,6 +77,8 @@ public:
         // Write the modified content back to the file
         Rewrite.getEditBuffer(MainFileID).write(out);
         out.close();
+
+        std::cout << "Modified timer located at: " << callStartLocation.printToString(SourceMgr) << std::endl;
     }
 private:
     Rewriter &Rewrite;

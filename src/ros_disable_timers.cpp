@@ -59,11 +59,11 @@ public:
         // Find a better way than to do a find-and-replace of the
         // timer declaration with the correct flag disabled :)
         std::string newArgs = arg1Text + ", " + arg2Text + ", nullptr, false";
-        std::cout << newArgs << std::endl;
+        clang::SourceLocation callStartLocation = callExpr->getArg(0)->getBeginLoc();
 
         // Replace the entire argument list
         CharSourceRange argRange = CharSourceRange::getTokenRange(
-            callExpr->getArg(0)->getBeginLoc(),
+            callStartLocation,
             callExpr->getEndLoc().getLocWithOffset(-1)
         );
 
@@ -88,6 +88,8 @@ public:
         // Write the modified content back to the file
         Rewrite.getEditBuffer(MainFileID).write(out);
         out.close();
+
+        std::cout << "Modified timer located at: " << callStartLocation.printToString(SourceMgr) << std::endl;
     }
 private:
     Rewriter &Rewrite;

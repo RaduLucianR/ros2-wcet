@@ -16,7 +16,11 @@ from tracetools_analysis.processor.ros2 import Ros2Handler
 from tracetools_analysis.utils.ros2 import Ros2DataModelUtil
 
 def compute_moet_from_trace(trace_session, toplevel_trace_dir = "~/.ros/tracing"):
-    moet = dict()
+    json_path = os.path.expanduser("~/.ros2wcet/moet.json")
+
+    with open(json_path, 'r') as file:
+        moet = json.load(file) # Maximum Observed Execution Times
+
     path = os.path.join(toplevel_trace_dir, trace_session, "ust")
     events = load_file(path)
     handler = Ros2Handler.process(events)
@@ -36,10 +40,17 @@ def compute_moet_from_trace(trace_session, toplevel_trace_dir = "~/.ros/tracing"
         # Duration
         duration_df = data_util.get_callback_durations(obj)
         duration_sec = duration_df['duration'] * 1000 / np.timedelta64(1, 's')
+        moet_callback = duration_sec.max()
 
-        print(symbol, "has MOET: ", duration_sec.max(), "ms")
-        moet[symbol] = duration_sec.max()
+        # If the entry exists then update only if 
+        # the new value is larger, i.e. only keep the maximum
+        if moet[symbol]:
+            if moet_callback > moet[symbol]:
+                moet[symbol] = moet_callback
+        else:
+            moet[symbol] = moet_callback
+        
+        print(symbol, "has MOET:", moet[symbol], "ms")
 
-    output_path = os.path.expanduser("~/.ros2wcet/moet.json")
-    with open(output_path, "w") as outfile: 
+    with open(json_path, "w") as outfile: 
         json.dump(moet, outfile)
