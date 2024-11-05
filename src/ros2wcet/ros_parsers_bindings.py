@@ -20,8 +20,13 @@ def get_package_path(package_name: str):
 
 def get_pkg_compilation_database(package_name: str):
     pkg_path = get_package_path(package_name)
-    os.chdir(pkg_path)
-    subprocess.run(["colcon", "build"], check = True)
+    cmake_output_folder = os.path.expanduser("~/.ros2wcet/cmake_garbage")
+    os.chdir(os.path.expanduser(cmake_output_folder))
+    subprocess.run(["cmake", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", pkg_path], check = True)
+    compilation_database_path = os.path.join(cmake_output_folder, "compile_commands.json")
+    destination_path = os.path.join(pkg_path, "compile_commands.json")
+    shutil.copy2(compilation_database_path, destination_path)
+    shutil.rmtree(cmake_output_folder)
 
 def get_workspace_path(package_name: str):
     cli_result = subprocess.run(["ros2", "pkg", "prefix", package_name], 
@@ -44,7 +49,9 @@ def apply_function_to_files_in_package(base_dir, func, target_subfolders = ['src
                     file_path = os.path.join(root, filename)
                     func(file_path)
 
-def revert_modifications(src_folder, backup_folder):
+def revert_modifications(src_folder, backup_folder="~/.ros2wcet/save_modified_files"):
+    backup_folder = os.path.expanduser(backup_folder)
+
     for file_name in os.listdir(backup_folder):
         # Full path of the file in the backup folder
         backup_file_path = os.path.join(backup_folder, file_name)
@@ -60,3 +67,5 @@ def revert_modifications(src_folder, backup_folder):
                 break
         else:
             print(f"Warning: {file_name} not found in {src_folder}")
+    
+    shutil.rmtree(backup_folder)

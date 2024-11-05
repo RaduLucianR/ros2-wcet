@@ -66,8 +66,7 @@ def measure_callbacks_moet(
 
     # Revert source code modifications if there are any
     if intrusive == True:
-        backup_folder = os.path.expanduser("~/.ros2wcet/save_modified_files")
-        revert_modifications(get_package_path(ros_pkg), backup_folder)
+        revert_modifications(get_package_path(ros_pkg))
 
 def main(session_name: str, 
          ros_pkg: str, 
@@ -76,6 +75,9 @@ def main(session_name: str,
          nrof_messages: int,
          intrusive: bool
         ):
+    if intrusive == True:
+        get_pkg_compilation_database(ros_pkg)
+
     measure_callbacks_moet(session_name, ros_pkg, launch_file, 
                            publish_frequency, nrof_messages, intrusive,
                            "subscription")

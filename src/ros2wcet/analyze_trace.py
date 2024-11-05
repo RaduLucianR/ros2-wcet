@@ -53,4 +53,4 @@ def compute_moet_from_trace(trace_session, toplevel_trace_dir = "~/.ros/tracing"
         print(symbol, "has MOET:", moet[symbol], "ms")
 
     with open(json_path, "w") as outfile: 
-        json.dump(moet, outfile)
+        json.dump(moet, outfile, indent = 4)
