@@ -64,6 +64,11 @@ def measure_callbacks_moet(
     # Compute the Maximum Observed Execution Times (MOET)
     compute_moet_from_trace(session_name)
 
+    # Revert source code modifications if there are any
+    if intrusive == True:
+        backup_folder = os.path.expanduser("~/.ros2wcet/save_modified_files")
+        revert_modifications(get_package_path(ros_pkg), backup_folder)
+
 def main(session_name: str, 
          ros_pkg: str, 
          launch_file: str, 

@@ -11,6 +11,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
+#include <cstdlib>
 
 using namespace std;
 using namespace clang;
@@ -54,6 +56,7 @@ public:
         // Define the new argument string using arg1 and arg2 text
         // Add nullptr for callback group i.e. don't add it to a cb group
         // Add false for autostart option i.e. block it from autostarting
+
         // TODO: There must be a way to enable the timer at runtime 
         // but I can't find it in the source code or documentation.
         // Find a better way than to do a find-and-replace of the
@@ -76,6 +79,9 @@ public:
         // Get the filename from the SourceLocation
         llvm::StringRef Filename = SourceMgr.getFilename(StartLoc);
 
+        // Save a copy of the file, so we can revert changes later
+        copyFile(Filename.str(), getDestinationPath(Filename.str()));
+
         // Create an output file stream
         std::error_code EC;
         llvm::raw_fd_ostream out(Filename.str(), EC, llvm::sys::fs::FA_Write);
@@ -91,9 +97,43 @@ public:
 
         std::cout << "Modified timer located at: " << callStartLocation.printToString(SourceMgr) << std::endl;
     }
+
 private:
     Rewriter &Rewrite;
     bool Initialized;
+
+    // TODO: Maybe move these 2 functions to a separate file
+    bool copyFile(const std::string& source, const std::string& destination) {
+        std::ifstream src(source, std::ios::binary);
+        if (!src) {
+            std::cerr << "Error opening source file: " << source << std::endl;
+            return false;
+        }
+
+        std::ofstream dest(destination, std::ios::binary);
+        if (!dest) {
+            std::cerr << "Error opening destination file: " << destination << std::endl;
+            return false;
+        }
+
+        dest << src.rdbuf(); // Copy content from source to destination
+        return true;
+    }
+
+    std::string getDestinationPath(const std::string& source) {
+        // Get the filename from the source path
+        std::filesystem::path sourcePath(source);
+        std::string filename = sourcePath.filename().string();
+
+        // Construct the destination path
+        std::string homeDir = getenv("HOME"); // Get the home directory
+        std::string destinationDir = homeDir + "/.ros2wcet/save_modified_files/";
+        
+        // Create the destination directory if it doesn't exist
+        std::filesystem::create_directories(destinationDir);
+
+        return destinationDir + filename; // Combine the directory and filename
+    }
 };
 
 int main(int argc, const char **argv) {
