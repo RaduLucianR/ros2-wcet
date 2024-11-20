@@ -6,7 +6,7 @@ project(RosParsers)
 
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
-# find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # Include directories
 include_directories(${LLVM_INCLUDE_DIRS} ${CLANG_INCLUDE_DIRS})
@@ -41,6 +41,17 @@ target_link_libraries(ros_fast_period_timers # Link against LLVM and Clang libra
     clangBasic
     clangAST
     clangSupport
+)
+
+add_executable(ros_callback_extractor src/ros_callback_extractor.cpp)
+target_link_libraries(ros_callback_extractor # Link against LLVM and Clang libraries
+    ${LLVM_LIBRARIES}
+    ${CLANG_LIBRARIES}
+    clangTooling
+    clangBasic
+    clangAST
+    clangSupport
+    nlohmann_json # JSON lib
 )
 
 # Specify C++ standard

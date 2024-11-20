@@ -44,13 +44,13 @@ def compute_moet_from_trace(trace_session, toplevel_trace_dir = "~/.ros/tracing"
 
         # If the entry exists then update only if 
         # the new value is larger, i.e. only keep the maximum
-        if moet[symbol]:
-            if moet_callback > moet[symbol]:
-                moet[symbol] = moet_callback
+        if obj in moet:
+            if moet_callback > moet[obj]:
+                moet[obj] = moet_callback
         else:
-            moet[symbol] = moet_callback
+            moet[obj] = moet_callback
         
-        print(symbol, "has MOET:", moet[symbol], "ms")
+        print(obj, "has MOET:", moet[obj], "ms")
 
     with open(json_path, "w") as outfile: 
         json.dump(moet, outfile, indent = 4)

@@ -11,62 +11,70 @@ from analyze_trace import compute_moet_from_trace
 from ros_parsers_bindings import *    
 
 def measure_callbacks_moet(
-         session_name: str, 
-         ros_pkg: str, 
-         launch_file: str, 
-         publish_frequency: int, 
-         nrof_messages: int,
-         intrusive: bool,
-         callback_type: str
+        session_name: str, 
+        ros_pkg: str, 
+        launch_file: str, 
+        publish_frequency: int, 
+        nrof_messages: int,
+        intrusive: bool,
+        callback_type: str
     ):
-    session_name = f"{session_name}_{callback_type}"
-    stress = Stress()
-    
-    if intrusive == True:
-        if callback_type == "subscription":
+    try:
+        session_name = f"{session_name}_{callback_type}"
+        stress = Stress()
+        
+        if intrusive == True:
+            if callback_type == "subscription":
                 apply_function_to_files_in_package(get_package_path(ros_pkg), disable_timers)
-        elif callback_type == "timer":
+            elif callback_type == "timer":
                 apply_function_to_files_in_package(get_package_path(ros_pkg), set_fast_periods)
 
-        recompile_ros_ws(get_workspace_path(ros_pkg))
+            recompile_ros_ws(get_workspace_path(ros_pkg))
 
-    # Start tracing
-    os.system(f"ros2 trace start {session_name}")
+        # Start tracing
+        os.system(f"ros2 trace start {session_name}")
 
-    # Start stressing the hardware platform on which we're running
-    stress.stress_platform()
+        # Start stressing the hardware platform on which we're running
+        stress.stress_platform()
 
-    # Start the whole ROS system
-    ros_system = subprocess.Popen(['ros2', 'launch', ros_pkg, launch_file], start_new_session=True)
-    time.sleep(5) # Wait for the system to be operational
+        # Start the whole ROS system
+        ros_system = subprocess.Popen(['ros2', 'launch', ros_pkg, launch_file], start_new_session=True)
+        time.sleep(5) # Wait for the system to be operational
 
-    # Trigger the subscription callbacks
-    if callback_type == "subscription":
-        introspect() # Introspection finds the topics that the trigger needs to publish to
-        trigger_subscriptions(publish_frequency, nrof_messages)
-        time.sleep(1)
-    elif callback_type == "timer":
-        # For timers there's no need for introspection since their callbacks are triggered
-        # automatically by ROS. The tracing then finds the callbacks for us
-        time.sleep(10)  # Since we set the timers to publish every 1ms
-                        # then 10s should be enough to capture 10k samples
-                        # but this doesn't take the scheduling interference
-                        # so it might be that we have fewer than 10k samples.
-                        # For now it should be ok.
+        # Trigger the subscription callbacks
+        if callback_type == "subscription":
+            introspect() # Introspection finds the topics that the trigger needs to publish to
+            trigger_subscriptions(publish_frequency, nrof_messages)
+            time.sleep(1)
+        elif callback_type == "timer":
+            # For timers there's no need for introspection since their callbacks are triggered
+            # automatically by ROS. The tracing then finds the callbacks for us
+            time.sleep(10)  # Since we set the timers to publish every 1ms
+                            # then 10s should be enough to capture 10k samples
+                            # but this doesn't take the scheduling interference
+                            # so it might be that we have fewer than 10k samples.
+                            # For now it should be ok.
 
-    # Stop and save collected traces
-    os.system(f"ros2 trace stop {session_name}")
+        # Stop and save collected traces
+        os.system(f"ros2 trace stop {session_name}")
 
-    # Clean-up: stop the stressing and terminate the ROS system
-    stress.terminate()
-    os.killpg(os.getpgid(ros_system.pid), signal.SIGTERM)
+        # Clean-up: stop the stressing and terminate the ROS system
+        stress.terminate()
+        os.killpg(os.getpgid(ros_system.pid), signal.SIGTERM)
 
-    # Compute the Maximum Observed Execution Times (MOET)
-    compute_moet_from_trace(session_name)
+        # Compute the Maximum Observed Execution Times (MOET)
+        compute_moet_from_trace(session_name)
 
-    # Revert source code modifications if there are any
-    if intrusive == True:
+        # Revert source code modifications if there are any
+        if intrusive == True:
+            revert_modifications(get_package_path(ros_pkg))
+            remove_cmake_garbage(ros_pkg)
+
+    except KeyboardInterrupt:
+        stress.terminate()
+        os.killpg(os.getpgid(ros_system.pid), signal.SIGTERM)
         revert_modifications(get_package_path(ros_pkg))
+        remove_cmake_garbage(ros_pkg)
 
 def main(session_name: str, 
          ros_pkg: str, 
@@ -75,6 +83,7 @@ def main(session_name: str,
          nrof_messages: int,
          intrusive: bool
         ):
+    
     if intrusive == True:
         get_pkg_compilation_database(ros_pkg)
 
@@ -127,8 +136,8 @@ if __name__ == "__main__":
                                 timers triggers faster, instead of waiting for each of their respective period. \
                                 If you don't want to have intrusion then disable this, however the tool \
                                 reverts the changes.",
-                        default = True,
-                        type = bool
+                        default = False,
+                        action='store_true'
                         )
     args = parser.parse_args()
 
@@ -137,5 +146,5 @@ if __name__ == "__main__":
          args.launch_file, 
          args.publish_frequency, 
          args.nrof_messages,
-         args.intrusive
+         intrusive = args.intrusive
         )

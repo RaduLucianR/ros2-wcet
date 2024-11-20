@@ -3,6 +3,8 @@ import os
 import fnmatch
 import shutil
 
+# TODO: Make actual bindings with pybind
+
 def disable_timers(file: str):
     subprocess.run(["/home/radu/ros2-wcet/build/ros_disable_timers", file])
 
@@ -20,13 +22,24 @@ def get_package_path(package_name: str):
 
 def get_pkg_compilation_database(package_name: str):
     pkg_path = get_package_path(package_name)
-    cmake_output_folder = os.path.expanduser("~/.ros2wcet/cmake_garbage")
+    default_ros2wcet_folder = os.path.expanduser("~/.ros2wcet/")
+    cmake_output_folder = os.path.join(default_ros2wcet_folder, "cmake_garbage")
+    os.makedirs(cmake_output_folder, exist_ok=True)
     os.chdir(os.path.expanduser(cmake_output_folder))
     subprocess.run(["cmake", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", pkg_path], check = True)
     compilation_database_path = os.path.join(cmake_output_folder, "compile_commands.json")
     destination_path = os.path.join(pkg_path, "compile_commands.json")
     shutil.copy2(compilation_database_path, destination_path)
+    # shutil.rmtree(cmake_output_folder)
+
+def remove_cmake_garbage(package_name: str):
+    pkg_path = get_package_path(package_name)
+    destination_path = os.path.join(pkg_path, "compile_commands.json")
+    os.remove(destination_path)
+    default_ros2wcet_folder = os.path.expanduser("~/.ros2wcet/")
+    cmake_output_folder = os.path.join(default_ros2wcet_folder, "cmake_garbage")
     shutil.rmtree(cmake_output_folder)
+
 
 def get_workspace_path(package_name: str):
     cli_result = subprocess.run(["ros2", "pkg", "prefix", package_name], 
