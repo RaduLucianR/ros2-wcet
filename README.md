@@ -1,5 +1,5 @@
 # ros2-wcet
-Automatically measure the WCET of callbacks in ROS2
+Automatically measure the WCET of callbacks in ROS2. THIS IS STILL WIP (WORK-IN-PROGRESS).
 
 # Software design
 This section details the design decisions taken to create this software tool.
